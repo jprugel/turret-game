@@ -1,0 +1,10 @@
+{
+    "name": "Ether Drill",
+    "description": "Drills for Ether",
+    "cost": 50,
+    "range": 0,
+    "damage": 0,
+    // Cooldown in ticks
+    "cooldown": 1,
+    "image": "ether_drill.png"
+}
