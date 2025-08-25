@@ -1,16 +1,17 @@
+use crate::Canvas;
 use crate::GameState;
+use crate::builder::Node as BNode;
 use bevy::prelude::*;
 use bevy::window::WindowResized;
 use bevy::winit::cursor::{CursorIcon, CustomCursor, CustomCursorImage};
 use std::collections::VecDeque;
 
-struct GamePlugin;
+pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Game), setup)
             .add_systems(OnEnter(GameState::Game), setup_deck)
-            .add_systems(OnEnter(GameState::Game), setup_camera)
             .add_systems(OnEnter(GameState::Game), setup_cursor_icon)
             .add_systems(OnEnter(GameState::Game), on_resize_system);
     }
@@ -68,7 +69,12 @@ struct CoreDrill {
     ether_rate: u32,
 }
 
-fn setup_deck(mut commands: Commands, asset_server: Res<AssetServer>, window: Single<&Window>) {
+fn setup_deck(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    window: Single<&Window>,
+    canvas: Single<&Canvas>,
+) {
     let core_drill = Construct {
         level: 1,
         health: 100,
@@ -79,23 +85,20 @@ fn setup_deck(mut commands: Commands, asset_server: Res<AssetServer>, window: Si
         name: "Core Drill".to_string(),
         card_type: CardType::Construct(core_drill),
     };
-    let image = asset_server.load("card.png");
-    let card_sprite = Sprite {
-        image,
-        custom_size: Some(Vec2::new(100.0, 150.0)),
-        image_mode: SpriteImageMode::Scale(ScalingMode::FitCenter),
-        ..default()
-    };
 
-    let deck = vec![core_drill_card.clone()];
+    let image = asset_server.load("card.png");
+
+    let image_node = ImageNode::new(image);
+
+    let card_node: Node = BNode::builder()
+        .height(Val::Px(150.0))
+        .width(Val::Px(100.0))
+        .align_items(AlignItems::Center)
+        .build()
+        .into();
 
     commands
-        .spawn((
-            core_drill_card,
-            card_sprite,
-            Pickable::default(),
-            Transform::from_translation(Vec3::new(0.0, -window.height() / 2.0, 0.0)),
-        ))
+        .spawn((card_node, children![image_node]))
         .observe(on_card_hover)
         .observe(on_card_out)
         .observe(on_card_press);
@@ -112,10 +115,6 @@ fn on_resize_system(
             card.translation.y = -e.height / 2.0;
         }
     }
-}
-
-fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2d);
 }
 
 fn setup(

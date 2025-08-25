@@ -11,7 +11,6 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        info!("MenuPlugin initialized");
         app.add_systems(
             OnEnter(GameState::Menu),
             (setup_canvas, setup_buttons).chain(),
@@ -30,6 +29,7 @@ fn button_system(
         ),
         (Changed<Interaction>, With<Button>),
     >,
+    mut game_state: ResMut<NextState<GameState>>,
     mut text_query: Query<&mut Text>,
 ) {
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
@@ -37,6 +37,7 @@ fn button_system(
         match *interaction {
             Interaction::Pressed => {
                 info!("Button pressed");
+                game_state.set(GameState::Game);
                 **text = "Press".to_string();
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = RED.into();
@@ -56,7 +57,7 @@ fn button_system(
 }
 
 #[derive(Component)]
-struct Canvas;
+pub struct Canvas;
 
 fn setup_canvas(mut commands: Commands) {
     info!("Setting up canvas");
