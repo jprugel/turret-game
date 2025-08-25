@@ -1,3 +1,4 @@
+use crate::Canvas;
 use crate::GameState;
 use crate::builder::Node as BNode;
 use bevy::color::palettes::basic::*;
@@ -11,11 +12,9 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            OnEnter(GameState::Menu),
-            (setup_canvas, setup_buttons).chain(),
-        )
-        .add_systems(Update, button_system);
+        app.insert_resource(ButtonSetup(false))
+            .add_systems(OnEnter(GameState::Menu), setup_buttons)
+            .add_systems(Update, button_system.run_if(button_setup));
     }
 }
 
@@ -30,7 +29,7 @@ fn button_system(
         (Changed<Interaction>, With<Button>),
     >,
     mut game_state: ResMut<NextState<GameState>>,
-    mut text_query: Query<&mut Text>,
+    mut text_query: Query<&mut Text, With<Button>>,
 ) {
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
@@ -56,20 +55,18 @@ fn button_system(
     }
 }
 
-#[derive(Component)]
-pub struct Canvas;
+#[derive(Resource)]
+struct ButtonSetup(bool);
 
-fn setup_canvas(mut commands: Commands) {
-    info!("Setting up canvas");
-    let canvas: Node = BNode::builder()
-        .width(Val::Percent(100.0))
-        .height(Val::Percent(100.0))
-        .build()
-        .into();
-    commands.spawn((canvas, Canvas));
+fn button_setup(button_setup: Res<ButtonSetup>) -> bool {
+    button_setup.0
 }
 
-fn setup_buttons(mut commands: Commands, canvas: Single<Entity, With<Canvas>>) {
+fn setup_buttons(
+    mut commands: Commands,
+    canvas: Single<Entity, With<Canvas>>,
+    mut button_setup: ResMut<ButtonSetup>,
+) {
     info!("Setting up buttons");
     let button_node: Node = BNode::builder()
         .width(Val::Px(150.0))
@@ -87,4 +84,6 @@ fn setup_buttons(mut commands: Commands, canvas: Single<Entity, With<Canvas>>) {
         BorderColor(Color::BLACK),
         children![Text::new("Button")],
     ));
+
+    button_setup.0 = true;
 }

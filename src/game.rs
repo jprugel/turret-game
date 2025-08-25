@@ -73,7 +73,7 @@ fn setup_deck(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     window: Single<&Window>,
-    canvas: Single<&Canvas>,
+    canvas: Single<Entity, With<Canvas>>,
 ) {
     let core_drill = Construct {
         level: 1,
@@ -93,12 +93,13 @@ fn setup_deck(
     let card_node: Node = BNode::builder()
         .height(Val::Px(150.0))
         .width(Val::Px(100.0))
-        .align_items(AlignItems::Center)
+        .justify_content(JustifyContent::Center)
         .build()
         .into();
 
     commands
-        .spawn((card_node, children![image_node]))
+        .entity(*canvas)
+        .insert(children![(card_node, children![image_node])])
         .observe(on_card_hover)
         .observe(on_card_out)
         .observe(on_card_press);

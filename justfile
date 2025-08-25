@@ -1,4 +1,6 @@
 set shell := ["powershell.exe", "-c"]
 
-r:
+alias r := run
+
+run:
     cargo run --features bevy/dynamic_linking

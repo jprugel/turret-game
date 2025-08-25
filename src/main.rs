@@ -2,6 +2,7 @@ pub mod builder;
 mod game;
 mod menu;
 
+use crate::builder::Node as BNode;
 use crate::game::*;
 use crate::menu::*;
 use bevy::asset::load_internal_binary_asset;
@@ -16,7 +17,8 @@ fn main() {
         GamePlugin,
     ))
     .init_state::<GameState>()
-    .add_systems(Startup, setup);
+    .add_systems(Startup, setup)
+    .add_systems(Startup, setup_canvas);
 
     load_internal_binary_asset!(
         app,
@@ -41,4 +43,17 @@ fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
     info!("Setting up camera.");
     commands.spawn(Camera2d);
     game_state.set(GameState::Menu);
+}
+
+#[derive(Component)]
+pub struct Canvas;
+
+fn setup_canvas(mut commands: Commands) {
+    info!("Setting up canvas");
+    let canvas: Node = BNode::builder()
+        .width(Val::Percent(100.0))
+        .height(Val::Percent(100.0))
+        .build()
+        .into();
+    commands.spawn((canvas, Canvas));
 }
