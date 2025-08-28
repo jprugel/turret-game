@@ -1,12 +1,16 @@
 pub mod builder;
 mod game;
+mod map;
 mod menu;
-
-use crate::builder::Node as BNode;
+mod ui;
+use crate::builder::BuilderExt;
 use crate::game::*;
+use crate::map::*;
 use crate::menu::*;
+use crate::ui::*;
 use bevy::asset::load_internal_binary_asset;
 use bevy::prelude::*;
+use bevy_obj::ObjPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -15,10 +19,18 @@ fn main() {
         DefaultPlugins.set(ImagePlugin::default_nearest()),
         MenuPlugin,
         GamePlugin,
+        ObjPlugin,
+        MeshPickingPlugin,
     ))
     .init_state::<GameState>()
     .add_systems(Startup, setup)
-    .add_systems(Startup, setup_canvas);
+    .add_systems(
+        Startup,
+        (setup_canvas, init_ui, player_resources_ui).chain(),
+    )
+    .add_systems(Startup, generate_map)
+    .add_systems(Update, generator_system)
+    .add_systems(Update, spawn_storage_full_bubble);
 
     load_internal_binary_asset!(
         app,
@@ -41,7 +53,17 @@ pub enum GameState {
 
 fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
     info!("Setting up camera.");
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+    commands.spawn((
+        PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
+        Transform::from_xyz(4.0, 8.0, 4.0),
+    ));
     game_state.set(GameState::Menu);
 }
 
@@ -50,10 +72,10 @@ pub struct Canvas;
 
 fn setup_canvas(mut commands: Commands) {
     info!("Setting up canvas");
-    let canvas: Node = BNode::builder()
+    let canvas: Node = Node::builder()
         .width(Val::Percent(100.0))
         .height(Val::Percent(100.0))
-        .build()
-        .into();
+        .build();
+
     commands.spawn((canvas, Canvas));
 }

@@ -1,6 +1,6 @@
 use crate::Canvas;
 use crate::GameState;
-use crate::builder::Node as BNode;
+use crate::builder::BuilderExt;
 use bevy::color::palettes::basic::*;
 use bevy::prelude::*;
 
@@ -12,10 +12,17 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ButtonSetup(false))
+        app.init_state::<MenuState>()
             .add_systems(OnEnter(GameState::Menu), setup_buttons)
-            .add_systems(Update, button_system.run_if(button_setup));
+            .add_systems(Update, button_system.run_if(in_state(MenuState::Loaded)));
     }
+}
+
+#[derive(States, Debug, Clone, Hash, Eq, PartialEq, Default)]
+enum MenuState {
+    #[default]
+    Loading,
+    Loaded,
 }
 
 fn button_system(
@@ -29,7 +36,7 @@ fn button_system(
         (Changed<Interaction>, With<Button>),
     >,
     mut game_state: ResMut<NextState<GameState>>,
-    mut text_query: Query<&mut Text, With<Button>>,
+    mut text_query: Query<&mut Text>,
 ) {
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
@@ -55,27 +62,19 @@ fn button_system(
     }
 }
 
-#[derive(Resource)]
-struct ButtonSetup(bool);
-
-fn button_setup(button_setup: Res<ButtonSetup>) -> bool {
-    button_setup.0
-}
-
 fn setup_buttons(
     mut commands: Commands,
     canvas: Single<Entity, With<Canvas>>,
-    mut button_setup: ResMut<ButtonSetup>,
+    mut game_state: ResMut<NextState<MenuState>>,
 ) {
     info!("Setting up buttons");
-    let button_node: Node = BNode::builder()
+    let button_node = Node::builder()
         .width(Val::Px(150.0))
         .height(Val::Px(65.0))
         .margin(UiRect::all(Val::Px(10.0)))
         .justify_content(JustifyContent::Center)
         .align_items(AlignItems::Center)
-        .build()
-        .into();
+        .build();
 
     commands.entity(*canvas).insert((
         button_node,
@@ -85,5 +84,5 @@ fn setup_buttons(
         children![Text::new("Button")],
     ));
 
-    button_setup.0 = true;
+    game_state.set(MenuState::Loaded);
 }
