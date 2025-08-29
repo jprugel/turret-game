@@ -40,6 +40,8 @@ pub fn player_resources_ui(
 #[derive(Component)]
 pub struct BuilderUi;
 
+const RED: Color = Color::srgba_u8(255, 0, 0, 255);
+
 pub fn spawn_builder_ui(
     released: Trigger<Pointer<Released>>,
     canvas: Single<Entity, With<Canvas>>,
@@ -66,9 +68,13 @@ pub fn spawn_builder_ui(
         .height(Val::Percent(50.))
         .build();
 
-    commands.entity(*canvas).insert((
+    commands.spawn((
         builder_node,
-        children![(title_bar, children![close_button]), button_node],
+        BackgroundColor(Color::WHITE),
+        children![
+            ((title_bar, BackgroundColor(RED)), children![close_button]),
+            button_node
+        ],
     ));
 }
 
