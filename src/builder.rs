@@ -32,6 +32,16 @@ impl NodeBuilder {
         self
     }
 
+    pub fn left(mut self, left: Val) -> Self {
+        self.left = Some(left);
+        self
+    }
+
+    pub fn right(mut self, right: Val) -> Self {
+        self.right = Some(right);
+        self
+    }
+
     pub fn margin(mut self, margin: UiRect) -> Self {
         self.margin = Some(margin);
         self

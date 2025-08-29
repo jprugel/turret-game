@@ -36,31 +36,35 @@ fn button_system(
         (Changed<Interaction>, With<Button>),
     >,
     mut game_state: ResMut<NextState<GameState>>,
-    mut text_query: Query<&mut Text>,
+    mut text_query: Query<&mut Text, With<ButtonText>>,
 ) {
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
-        match *interaction {
-            Interaction::Pressed => {
-                info!("Button pressed");
-                game_state.set(GameState::Game);
-                **text = "Press".to_string();
-                *color = PRESSED_BUTTON.into();
-                border_color.0 = RED.into();
-            }
-            Interaction::Hovered => {
-                **text = "Hover".to_string();
-                *color = HOVERED_BUTTON.into();
-                border_color.0 = Color::WHITE;
-            }
-            Interaction::None => {
-                **text = "Button".to_string();
-                *color = NORMAL_BUTTON.into();
-                border_color.0 = Color::BLACK;
+        if let Ok(mut text) = text_query.get_mut(children[0]) {
+            match *interaction {
+                Interaction::Pressed => {
+                    info!("Button pressed");
+                    game_state.set(GameState::Game);
+                    **text = "Press".to_string();
+                    *color = PRESSED_BUTTON.into();
+                    border_color.0 = RED.into();
+                }
+                Interaction::Hovered => {
+                    **text = "Hover".to_string();
+                    *color = HOVERED_BUTTON.into();
+                    border_color.0 = Color::WHITE;
+                }
+                Interaction::None => {
+                    **text = "Button".to_string();
+                    *color = NORMAL_BUTTON.into();
+                    border_color.0 = Color::BLACK;
+                }
             }
         }
     }
 }
+
+#[derive(Component)]
+struct ButtonText;
 
 fn setup_buttons(
     mut commands: Commands,
@@ -78,6 +82,7 @@ fn setup_buttons(
 
     commands.entity(*canvas).insert((
         button_node,
+        ButtonText,
         Button,
         BackgroundColor(Color::WHITE),
         BorderColor(Color::BLACK),

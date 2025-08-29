@@ -35,13 +35,13 @@ pub fn generate_map(
                     MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
                     Transform::from_xyz(x, 0.0, y).with_scale(Vec3::new(0.25, 0.25, 0.25)),
                 ))
-                .observe(on_block_hover)
+                .observe(spawn_builder_ui)
                 .observe(on_block_down);
         }
     }
 }
 
-fn on_block_hover(
+fn _on_block_hover(
     hover: Trigger<Pointer<Over>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut tiles: Query<&mut MeshMaterial3d<StandardMaterial>, With<Tile>>,
@@ -78,20 +78,27 @@ impl Storage {
     }
 }
 
+#[derive(Component)]
+struct ContextBubble(pub Entity);
+
 pub fn spawn_storage_full_bubble(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    storage: Query<(&Storage, &Transform)>,
+    storage: Query<(Entity, &Storage, &Transform)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for (storage, transform) in &storage {
+    for (entity, storage, transform) in &storage {
         if storage.amount == storage.capacity {
             commands.spawn((
-                Sprite::from_image(asset_server.load("Sprite-0001.png")),
+                ContextBubble(entity),
+                Mesh3d(asset_server.load("context_bubble.obj")),
+                MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
                 Transform::from_translation(Vec3::new(
                     transform.translation.x,
                     transform.translation.y + 1.0,
                     transform.translation.z,
-                )),
+                ))
+                .with_scale(Vec3::new(0.25, 0.25, 0.25)),
             ));
         }
     }
@@ -100,7 +107,6 @@ pub fn spawn_storage_full_bubble(
 pub fn generator_system(mut generators: Query<(&mut Storage, &Generator)>, time: Res<Time>) {
     for (mut storage, generator) in &mut generators {
         storage.increase(generator.rate * time.delta().as_millis() as u32);
-        info!("storage amount: {}", storage.amount);
     }
 }
 
@@ -111,22 +117,37 @@ fn on_block_down(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    info!("Clicked on tile");
     let white_material = materials.add(Color::BLACK);
     if let Ok((mut tile, transform)) = tiles.get_mut(down.target()) {
-        info!("Clicked on tile");
         tile.0 = white_material.clone();
         let translation = transform.translation + Vec3::new(0.0, 1.0, 0.0);
-        commands.spawn((
-            Generator { rate: 1 },
-            Storage {
-                capacity: 100,
-                amount: 0,
-            },
-            Farm,
-            Transform::from_translation(translation).with_scale(Vec3::new(0.25, 0.25, 0.25)),
-            MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
-            Mesh3d(asset_server.load("house.obj")),
-        ));
+        commands
+            .spawn((
+                Generator { rate: 1 },
+                Storage {
+                    capacity: 100,
+                    amount: 0,
+                },
+                Farm,
+                Transform::from_translation(translation).with_scale(Vec3::new(0.25, 0.25, 0.25)),
+                MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
+                Mesh3d(asset_server.load("house.obj")),
+            ))
+            .observe(on_construct_release);
+    }
+}
+
+use crate::ui::{PlayerResources, spawn_builder_ui};
+fn on_construct_release(
+    released: Trigger<Pointer<Released>>,
+    mut constructs: Query<(Entity, &mut Storage)>,
+    mut resources: Single<&mut PlayerResources>,
+) {
+    if let Ok((entity, mut storage)) = constructs.get_mut(released.target()) {
+        info!("Construct released: {}", entity);
+        info!("Food currently: {}", resources.food);
+        info!("Food in storage: {}", storage.amount);
+        resources.food += storage.amount;
+        storage.amount = 0;
     }
 }

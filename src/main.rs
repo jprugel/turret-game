@@ -24,13 +24,12 @@ fn main() {
     ))
     .init_state::<GameState>()
     .add_systems(Startup, setup)
-    .add_systems(
-        Startup,
-        (setup_canvas, init_ui, player_resources_ui).chain(),
-    )
+    .add_systems(Startup, (setup_canvas, init_ui).chain())
     .add_systems(Startup, generate_map)
     .add_systems(Update, generator_system)
-    .add_systems(Update, spawn_storage_full_bubble);
+    .add_systems(Update, player_resources_ui)
+    .add_systems(Update, spawn_storage_full_bubble)
+    .add_systems(Startup, setup_player_resources);
 
     load_internal_binary_asset!(
         app,
